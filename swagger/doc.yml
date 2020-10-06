@@ -1,0 +1,25 @@
+swagger: "2.0"
+info:
+  title: Sample API
+  description: API description in Markdown.
+  version: 1.0.0
+
+host: localhost:3000
+schemes:
+  - http
+
+paths:
+  /project-types:
+    get:
+      summary: get 
+      responses:
+        200:
+          description: A User object.
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  list:
+                    type: array

@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+  title: twfe apis
+  description: The api for teewon front-end project management.
+  version: 0.0.1
+servers:
+  - url: http://localhost:3000
+    description: localhost development url
+paths:
+  /users:
+    get:
+      summary: get a user login info
+      parameters:
+        - in: query
+          name: username
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: password
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: login success
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userId: 
+                    type: string
+                    description: The user id
+                  sessionid:
+                    type: string
+                    description: login session

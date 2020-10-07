@@ -7,6 +7,8 @@ module.exports = {
 
   inserUser: 'INSERT INTO tw_user(user_name, user_password, user_group, mobile) VALUES($1, $2, $3, $4) RETURNING id',
 
+  user: 'SELECT tw_user.id, user_name, user_group, group_name, mobile FROM tw_user inner join tw_group on tw_user.user_group = tw_group.id WHERE tw_user.id = $1',
+
   userList: 'SELECT id, user_name AS name, user_group AS groupId, mobile FROM tw_user WHERE user_group = $1',
 
   devGroups: 'SELECT id, group_name AS name FROM tw_group',
@@ -21,9 +23,9 @@ module.exports = {
     const sql = 'SELECT id, project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status from project '
 
     if (type === 'id') {
-      return sql + 'WHERE id = $1 ORDER BY id LIMIT $2 OFFSET $3'
+      return sql + 'WHERE id = $1'
     } else if (type === 'status') {
-      return sql + 'WHERE status = $1'
+      return sql + 'WHERE status = $1 ORDER BY id LIMIT $2 OFFSET $3'
     } else {
       return sql + 'ORDER BY id LIMIT $1 OFFSET $2'
     }

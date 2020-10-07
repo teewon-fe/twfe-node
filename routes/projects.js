@@ -10,11 +10,11 @@ router.get('/', async (req, res, next)=>{
   let count = 0
 
   if (req.query.status) {
-    data = await db.query(sql.genProjects('status'), [req.query.status])
+    values.unshift(req.query.status)
+    data = await db.query(sql.genProjects('status'), values)
     count = await db.query(sql.projectCount('status'), [req.query.status])
   } else if (req.query.id) {
-    values.unshift(req.query.id)
-    data = await db.query(sql.genProjects('id'), values)
+    data = await db.query(sql.genProjects('id'), [req.query.id])
     count = await db.query(sql.projectCount('id'), [req.query.id])
   } else {
     data = await db.query(sql.genProjects(), values)

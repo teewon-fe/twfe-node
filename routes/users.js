@@ -23,6 +23,14 @@ router.get('/', async (req, res, next)=>{
   }
 })
 
+router.get('/id', (req, res, next)=>{
+  db.query(sql.user, [req.query.id]).then(data=>{
+    res.json(res.genData('success', {
+      user: data.rows[0]
+    }))
+  })
+})
+
 router.get('/list', async (req, res, next)=>{
   const {groupId} = req.query
   const data = await db.query(sql.userList, [groupId])

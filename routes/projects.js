@@ -3,58 +3,6 @@ const router = express.Router()
 const db = require('../db')
 const sql = require('../db/sql')
 
-router.post('/', (req, res, next)=>{
-  const {
-    projectName,
-    projectVersion,
-    projectType,
-    groupId,
-    developerIds,
-    developerNames,
-    projectLeaderId,
-    projectLeaderName,
-    projectSvn,
-    projectPrdUrl,
-    projectDesignSvn,
-    projectPsdSvn,
-    projectApiSvn,
-    projectTestCaseSvn,
-    status
-  } = req.body.project
-
-  const values = [
-    projectName,
-    projectVersion,
-    projectType,
-    groupId,
-    developerIds.join(','),
-    developerNames.join(','),
-    projectLeaderId,
-    projectLeaderName,
-    projectSvn,
-    projectPrdUrl,
-    projectDesignSvn,
-    projectPsdSvn,
-    projectApiSvn,
-    projectTestCaseSvn,
-    status || 'doing'
-  ]
-
-  db.query(sql.insertProject, values).then(data=>{
-    let timeNodes = req.body.timeNodes
-    timeNodes = timeNodes.map(item=>[item.timeNodeName, data.rows[0].id, item.startTime, item.remark])
-    db.query(sql.insertProjectTimeNode(timeNodes))
-
-    let plans = req.body.plans
-    plans = plans.map(item=>[data.rows[0].id, item.taskName, item.taskType, item.degreen || 0, item.priority || 0, parseFloat(item.taskTime || 0), item.startTime ? item.startTime + ':00' : null, item.endTime ?  item.endTime + ':00' : null, item.developerId, item.developerName,  item.progress ? parseFloat(item.progress / 100) : 0, item.remark])
-    db.query(sql.insertProjectPlan(plans))
-
-    res.json(res.genData('success', {
-      projectId: data.rows[0].id
-    }))
-  })
-})
-
 router.get('/', async (req, res, next)=>{
   const values = [parseInt(req.query.pageSize), req.query.pageSize * (req.query.pageNo - 1)]
 
@@ -78,6 +26,9 @@ router.get('/', async (req, res, next)=>{
   for (const item of data.rows) {
     const timeNodes = await db.query(sql.timeNodes, [item.id])
     const plans = await db.query(sql.plans, [item.id])
+    item.developer_ids = item.developer_ids.split(',').map(id=>parseInt(id))
+    item.developer_names = item.developer_names.split(',')
+
     list.push({
       project: item,
       timeNodes: timeNodes.rows,
@@ -89,6 +40,88 @@ router.get('/', async (req, res, next)=>{
     list,
     total: parseInt(count.rows[0].count)
   }))
+})
+
+router.post('/', (req, res, next)=>{
+  const project = req.body.project
+
+  db.query(sql.insertProject, [
+    req.body.id,
+    project.project_name,
+    project.project_version,
+    project.project_type,
+    project.dev_group,
+    project.developer_ids.join(','),
+    project.developer_names.join(','),
+    project.project_leader_id,
+    project.project_leader_name,
+    project.project_svn,
+    project.project_prd_url,
+    project.project_design_svn,
+    project.project_psd_svn,
+    project.project_api_svn,
+    project.project_test_case_svn
+  ]).then(data=>{
+    let timeNodes = req.body.timeNodes
+    timeNodes = timeNodes.map(item=>[item.time_node_name, data.rows[0].id, item.start_time, item.remark])
+    db.query(sql.insertProjectTimeNode(timeNodes))
+
+    let plans = req.body.plans
+    plans = plans.map(item=>[data.rows[0].id, item.taskName, item.taskType, item.degreen || 0, item.priority || 0, parseFloat(item.taskTime || 0), item.start_time ? item.start_time + ':00' : null, item.end_time ?  item.end_time + ':00' : null, item.developer_id, item.developer_name,  item.progress ? parseFloat(item.progress / 100) : 0, item.remark])
+    db.query(sql.insertProjectPlan(plans))
+
+    res.json(res.genData('success', {
+      projectId: data.rows[0].id
+    }))
+  })
+})
+
+router.put('/', async (req, res, next)=>{
+  const project = req.body.project
+
+  await db.query(sql.updateProject, [
+    req.body.id,
+    project.project_name,
+    project.project_version,
+    project.project_type,
+    project.dev_group,
+    project.developer_ids.join(','),
+    project.developer_names.join(','),
+    project.project_leader_id,
+    project.project_leader_name,
+    project.project_svn,
+    project.project_prd_url,
+    project.project_design_svn,
+    project.project_psd_svn,
+    project.project_api_svn,
+    project.project_test_case_svn
+  ])
+
+  for (const timeNode of req.body.timeNodes) {
+    await db.query(sql.updateTimeNode, [
+      timeNode.id,
+      timeNode.time_node_name,
+      timeNode.start_time,
+      timeNode.remark
+    ])
+  }
+
+  for (const plan of req.body.plans) {
+    await db.query(sql.updatePlan, [
+      plan.id,
+      plan.task_name,
+      plan.task_type,
+      plan.degreen,
+      plan.priority || 0,
+      plan.task_time,
+      plan.start_time,
+      plan.end_time,
+      plan.developer_id,
+      plan.developer_name
+    ])
+  }
+
+  res.json(res.genData('success'))
 })
 
 router.get('/list', async (req, res, next)=>{

@@ -15,6 +15,8 @@ module.exports = {
 
   insertProject: 'INSERT INTO project(project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id',
 
+  updateProject: `UPDATE project SET project_name = $2, project_version = $3, project_type = $4, dev_group = $5, developer_ids = $6, developer_names = $7, project_leader_id = $8, project_leader_name = $9, project_svn = $10, project_prd_url = $11, project_design_svn = $12, project_psd_svn = $13, project_api_svn = $14, project_test_case_svn = $15 WHERE id = $1`,
+
   genProjects (type) {
     const sql = 'SELECT id, project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status from project '
 
@@ -42,8 +44,10 @@ module.exports = {
   toggleProject: `UPDATE project SET status = $1 WHERE id = $2`,
 
   insertProjectTimeNode (values) {
-    return format('INSERT INTO pj_time_node(time_node_name, project_id, start_time, remark) VALUES %L RETURNING id', values)
+    return format('INSERT INTO pj_time_node(time_node_name, start_time, remark) VALUES %L RETURNING id', values)
   },
+
+  updateTimeNode: 'UPDATE pj_time_node SET time_node_name = $2, start_time = $3, remark = $4 WHERE id = $1',
 
   timeNodes: 'SELECT id, time_node_name, project_id, start_time, done_time, remark from pj_time_node WHERE project_id = $1 ORDER BY start_time',
 
@@ -52,6 +56,8 @@ module.exports = {
   },
 
   plans: 'SELECT id, project_id, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, progress, remark from pj_plan WHERE project_id = $1 ORDER BY id',
+
+  updatePlan: 'UPDATE pj_plan SET task_name = $2, task_type = $3, degreen = $4, priority = $5, task_time = $6, start_time = $7, end_time = $8, developer_id = $9, developer_name = $10 WHERE id = $1',
 
   updatePlanProgress: `UPDATE pj_plan SET progress = $1 WHERE id = $2`,
 

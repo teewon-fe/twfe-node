@@ -32,7 +32,13 @@ router.get('/', async (req, res, next)=>{
     list.push({
       project: item,
       timeNodes: timeNodes.rows,
-      plans: plans.rows
+      plans: plans.rows.map(item=>{
+        if (new Date() >= new Date(item.end_time) && item.progress<1) {
+          item.status = '有风险'
+        }
+
+        return item
+      })
     })
   }
 

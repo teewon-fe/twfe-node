@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const sql = require('../db/sql')
+const projectHandler = require('../utils/project-handler').projectHandler
 
 router.get('/', async (req, res, next)=>{
   const values = [parseInt(req.query.pageSize), req.query.pageSize * (req.query.pageNo - 1)]
@@ -32,15 +33,11 @@ router.get('/', async (req, res, next)=>{
     list.push({
       project: item,
       timeNodes: timeNodes.rows,
-      plans: plans.rows.map(item=>{
-        if (new Date() >= new Date(item.end_time) && item.progress<1) {
-          item.status = '有风险'
-        }
-
-        return item
-      })
+      plans: plans.rows
     })
   }
+
+  projectHandler(list)
 
   res.json(res.genData('success', {
     list,
@@ -52,7 +49,6 @@ router.post('/', (req, res, next)=>{
   const project = req.body.project
 
   db.query(sql.insertProject, [
-    req.body.id,
     project.project_name,
     project.project_version,
     project.project_type,
@@ -66,14 +62,15 @@ router.post('/', (req, res, next)=>{
     project.project_design_svn,
     project.project_psd_svn,
     project.project_api_svn,
-    project.project_test_case_svn
+    project.project_test_case_svn,
+    project.status || 'doing'
   ]).then(data=>{
     let timeNodes = req.body.timeNodes
     timeNodes = timeNodes.map(item=>[item.time_node_name, data.rows[0].id, item.start_time, item.remark])
     db.query(sql.insertProjectTimeNode(timeNodes))
 
     let plans = req.body.plans
-    plans = plans.map(item=>[data.rows[0].id, item.taskName, item.taskType, item.degreen || 0, item.priority || 0, parseFloat(item.taskTime || 0), item.start_time ? item.start_time + ':00' : null, item.end_time ?  item.end_time + ':00' : null, item.developer_id, item.developer_name,  item.progress ? parseFloat(item.progress / 100) : 0, item.remark])
+    plans = plans.map(item=>[data.rows[0].id, item.task_name, item.task_type, item.degreen || 0, item.priority || 0, parseFloat(item.task_time || 0), item.start_time ? item.start_time + ':00' : null, item.end_time ?  item.end_time + ':00' : null, item.developer_id || null, item.developer_name || null, item.no])
     db.query(sql.insertProjectPlan(plans))
 
     res.json(res.genData('success', {
@@ -104,30 +101,67 @@ router.put('/', async (req, res, next)=>{
   ])
 
   for (const timeNode of req.body.timeNodes) {
-    await db.query(sql.updateTimeNode, [
-      timeNode.id,
+    const values = [
       timeNode.time_node_name,
       timeNode.start_time,
       timeNode.remark
-    ])
+    ]
+
+    if (timeNode.id) {
+      values.unshift(timeNode.id)
+      await db.query(sql.updateTimeNode, values)
+    } else {
+      values.splice(1, 0, req.body.id)
+      db.query(sql.insertProjectTimeNode([values]))
+    }
   }
 
   for (const plan of req.body.plans) {
-    await db.query(sql.updatePlan, [
-      plan.id,
+    const values = [
       plan.task_name,
       plan.task_type,
-      plan.degreen,
+      plan.degreen || 0,
       plan.priority || 0,
-      plan.task_time,
-      plan.start_time,
-      plan.end_time,
-      plan.developer_id,
-      plan.developer_name
-    ])
+      plan.task_time || 0,
+      plan.start_time ? plan.start_time + ':00' : null,
+      plan.end_time ? plan.end_time + ':00' : null,
+      plan.developer_id || null,
+      plan.developer_name || null,
+      plan.no
+    ]
+
+    if (plan.id) {
+      values.unshift(plan.id)
+      await db.query(sql.updatePlan, values)
+    } else {
+      values.unshift(req.body.id)
+      await db.query(sql.insertProjectPlan([values]))
+    }    
+  }
+
+  for (const delPlanId of req.body.delPlanIds) {
+    await db.query(sql.deletePlan(), [delPlanId])
+  }
+
+  for (const delTimeNodeId of req.body.delTimeNodeIds) {
+    await db.query(sql.deleteTimeNode(), [delTimeNodeId])
   }
 
   res.json(res.genData('success'))
+})
+
+router.delete('/:id/:pwd', async (req, res, next)=>{
+  const data = await db.query(sql.fetchPasswordById, [req.headers['user-id']])
+
+    if (data.rows[0].user_password === req.params.pwd) {
+      await db.query(sql.deletePlan('project'), [parseInt(req.params.id)])
+      await db.query(sql.deleteTimeNode('project'), [parseInt(req.params.id)])
+      await db.query(sql.deleteProject, [parseInt(req.params.id)])
+
+      res.json(res.genData('success'))
+    } else {
+      res.json(res.genData('passwordError'))
+    }
 })
 
 router.get('/list', async (req, res, next)=>{
@@ -144,6 +178,18 @@ router.get('/list', async (req, res, next)=>{
 
   res.json(res.genData('success', {
     list: data.rows
+  }))
+})
+
+router.get('/count', async (req, res, next)=>{
+  let data = null
+
+  const total =  await db.query(sql.projectCount())
+  const doing =  await db.query(sql.projectCount('status'), ['doing'])
+
+  res.json(res.genData('success', {
+    total: parseInt(total.rows[0].count),
+    doing: parseInt(doing.rows[0].count)
   }))
 })
 

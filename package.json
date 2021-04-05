@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "crypto": "^1.0.1",
     "dateformat": "^3.0.3",
     "express": "^4.17.1",
     "pg-format": "^1.0.4"

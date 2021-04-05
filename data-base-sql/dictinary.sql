@@ -37,3 +37,17 @@ ALTER SEQUENCE project_dev_mode_id_seq RESTART WITH 1;
 
 INSERT INTO project_dev_mode(dev_mod_name)
 VALUES('前后端分离'),('前后端分离-样式页'),('html纯样式页');
+
+CREATE TABLE issues (
+	id serial PRIMARY KEY,
+	descript varchar(2000) UNIQUE NOT NULL,
+	type varchar(30) DEFAULT 'bug',
+	create_developer_id INTEGER NOT NULL,
+	create_developer varchar(30) NOT NULL,
+	handle_developer varchar(30),
+	resolve_time TIMESTAMP,
+	status varchar(30) DEFAULT 'doing',
+	remark varchar(300),
+	create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+	update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(0)
+);

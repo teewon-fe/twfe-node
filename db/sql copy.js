@@ -30,59 +30,39 @@ module.exports = {
 
   projectDegreen: 'SELECT id, degreen_name, task_time, remark from dic_degreen  ORDER BY id',
 
-  insertProject: 'INSERT INTO project(project_name, project_version, project_type, dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn, project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, remark, project_fe_leader_id, project_fe_leader_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id',
+  insertProject: 'INSERT INTO project(project_name, project_version, project_type, dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn, project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, remark) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id',
 
-  updateProject: `UPDATE project SET project_name = $2, project_version = $3, project_type = $4, dev_group = $5, developer_ids = $6, developer_names = $7, project_leader_id = $8, project_leader_name = $9, project_svn = $10, project_prd_url = $11, project_design_svn = $12, project_psd_svn = $13, project_api_svn = $14, project_test_case_svn = $15, remark = $16, project_fe_leader_id = $17, project_fe_leader_name = $18 WHERE id = $1`,
+  updateProject: `UPDATE project SET project_name = $2, project_version = $3, project_type = $4, dev_group = $5, developer_ids = $6, developer_names = $7, project_leader_id = $8, project_leader_name = $9, project_svn = $10, project_prd_url = $11, project_design_svn = $12, project_psd_svn = $13, project_api_svn = $14, project_test_case_svn = $15, remark = $16 WHERE id = $1`,
 
   deleteProject: 'delete from project where id = $1',
 
-  genProjects(type, isPageable, developer_id) {
-    const sql = 'SELECT id, project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, project_fe_leader_id, project_fe_leader_name, remark from project '
+  genProjects(type, isPageable) {
+    const sql = 'SELECT id, project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, remark from project '
 
     if (type === 'id') {
       return sql + 'WHERE id = $1'
     } else if (type === 'status') {
       if (isPageable) {
-        if (developer_id) {
-          return sql + `WHERE status = $1 AND dev_group like $4 AND developer_ids ~ $5  ORDER BY id DESC LIMIT $2 OFFSET $3`
-        } else {
-          return sql + `WHERE status = $1 AND dev_group like $4 ORDER BY id DESC LIMIT $2 OFFSET $3`
-        }
+        return sql + `WHERE status = $1 AND dev_group like $4 ORDER BY id DESC LIMIT $2 OFFSET $3`
       } else {
-        if (developer_id) {
-          return sql + `WHERE status = $1 AND dev_group like $2 AND developer_ids ~ $3 ORDER BY id DESC`
-        } else {
-          return sql + `WHERE status = $1 AND dev_group like $2 ORDER BY id DESC`
-        }
+        return sql + `WHERE status = $1 AND dev_group like $2 ORDER BY id DESC`
       }      
     } else {
-      if (developer_id) {
-        return sql + `WHERE dev_group like $3 AND developer_ids ~ $4 ORDER BY id DESC LIMIT $1 OFFSET $2`
-      } else {
-        return sql + `WHERE dev_group like $3 ORDER BY id DESC LIMIT $1 OFFSET $2`
-      }
+      return sql + `WHERE dev_group like '%1%' ORDER BY id DESC LIMIT $1 OFFSET $2`
     }
 
     return sql
   },
 
-  projectCount(type, developer_id) {
+  projectCount(type) {
     const sql = 'SELECT COUNT(*) FROM project '
 
     if (type === 'id') {
-      return sql + `WHERE id = $1`
+      return sql + `WHERE id = $1 && dev_group like $2`
     } else if (type === 'status') {
-      if (developer_id) {
-        return sql + `WHERE status = $1 AND dev_group like $2 AND developer_ids ~ $3`
-      } else {
-        return sql + `WHERE status = $1 AND dev_group like $2`
-      }      
+      return sql + `WHERE status = $1 && dev_group like $2`
     } else {
-      if (developer_id) {
-        return sql + `WHERE dev_group like $1 AND developer_ids ~ $2`
-      } else {
-        return sql + `WHERE dev_group like $1`
-      }      
+      return sql + `WHERE dev_group like $1`
     }
   },
 
@@ -112,7 +92,7 @@ module.exports = {
     return format('INSERT INTO pj_plan(project_id, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, no) VALUES %L RETURNING id', values)
   },
 
-  plans: `SELECT pj_plan.id as id, project_id, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, progress, pj_plan.remark as remark, user_group as dev_group from pj_plan LEFT JOIN tw_user ON pj_plan.developer_id = tw_user.id WHERE project_id = $1 AND (task_type = 'group' OR user_group like $2) ORDER BY no`,
+  plans: 'SELECT id, project_id, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, progress, remark from pj_plan WHERE project_id = $1 ORDER BY no',
 
   updatePlan: 'UPDATE pj_plan SET task_name = $2, task_type = $3, degreen = $4, priority = $5, task_time = $6, start_time = $7, end_time = $8, developer_id = $9, developer_name = $10, no = $11 WHERE id = $1',
 

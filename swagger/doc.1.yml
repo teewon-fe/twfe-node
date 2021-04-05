@@ -32,6 +32,6 @@ paths:
                   userId: 
                     type: string
                     description: The user id
-                  sessionid:
+                  token:
                     type: string
                     description: login session

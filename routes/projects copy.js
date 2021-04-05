@@ -7,43 +7,34 @@ const projectHandler = require('../utils/project-handler').projectHandler
 router.get('/', async (req, res, next)=>{
   let values = []
   const isPageable = req.query.pageNo
-  let developer_id = req.query.developer_id
-  developer_id = developer_id ? `(^${developer_id}$|^${developer_id},|,${developer_id},|,${developer_id}$)` : false
-  const queryCountParams = [req.headers['global-dev-group']]
 
   if (isPageable) {
     values = [parseInt(req.query.pageSize), req.query.pageSize * (req.query.pageNo - 1)]
   }
 
-  values.push(req.headers['global-dev-group'])
-
-  if (developer_id) {
-    values.push(developer_id)
-    queryCountParams.push(developer_id)
-  }
+  // values.push(req.headers.groups)
 
   let data = null
   let count = 0
 
   if (req.query.status) {
     values.unshift(req.query.status)
-    queryCountParams.unshift(req.query.status)
-    data = await db.query(sql.genProjects('status', isPageable, developer_id), values)
-    count = await db.query(sql.projectCount('status', developer_id), queryCountParams)
+    data = await db.query(sql.genProjects('status', isPageable), values)
+    count = await db.query(sql.projectCount('status'), [req.query.status, req.headers.groups])
   } else if (req.query.id) {
     data = await db.query(sql.genProjects('id'), [req.query.id])
-    count = await db.query(sql.projectCount('id'), [req.query.id])
+    count = await db.query(sql.projectCount('id'), [req.query.id, req.headers.groups])
   } else {
-    data = await db.query(sql.genProjects(null, null, developer_id), values)
-    count = await db.query(sql.projectCount(null, developer_id), queryCountParams)
+    data = await db.query(sql.genProjects(), values)
+    count = await db.query(sql.projectCount(), [req.headers.groups])
   }
 
   const list = []
 
   for (const item of data.rows) {
     const timeNodes = await db.query(sql.timeNodes, [item.id])
-    const plans = await db.query(sql.plans, [item.id, req.headers['global-dev-group']])
-    item.dev_group = item.dev_group.split(',')
+    const plans = await db.query(sql.plans, [item.id])
+    item.dev_group = item.dev_group.split(',').map(id=>parseInt(id))
     item.developer_ids = item.developer_ids.split(',').map(id=>parseInt(id))
     item.developer_names = item.developer_names.split(',')
     item.project_leader_id = item.project_leader_id
@@ -83,9 +74,7 @@ router.post('/', (req, res, next)=>{
     project.project_api_svn,
     project.project_test_case_svn,
     project.status || 'doing',
-    project.remark || null,
-    project.project_fe_leader_id,
-    project.project_fe_leader_name
+    project.remark || null
   ]).then(data=>{
     let timeNodes = req.body.timeNodes
     timeNodes = timeNodes.map(item=>[item.time_node_name, data.rows[0].id, item.start_time, item.remark])
@@ -109,7 +98,7 @@ router.put('/', async (req, res, next)=>{
     project.project_name,
     project.project_version,
     project.project_type,
-    project.dev_group.sort().join(','),
+    project.dev_group.join(','),
     project.developer_ids.join(','),
     project.developer_names.join(','),
     project.project_leader_id,
@@ -120,9 +109,7 @@ router.put('/', async (req, res, next)=>{
     project.project_psd_svn,
     project.project_api_svn,
     project.project_test_case_svn,
-    project.remark,
-    project.project_fe_leader_id,
-    project.project_fe_leader_name
+    project.remark
   ])
 
   for (const timeNode of req.body.timeNodes) {
@@ -209,19 +196,9 @@ router.get('/list', async (req, res, next)=>{
 
 router.get('/count', async (req, res, next)=>{
   let data = null
-  let developer_id = req.query.developer_id
-  developer_id = req.query.developer_id ? `(^${developer_id}$|^${developer_id},|,${developer_id},|,${developer_id}$)` : false
 
-  const totalParams = [req.headers['global-dev-group']]
-
-  if (developer_id) {
-    totalParams.push(developer_id)
-  }
-
-  const doingParams = ['doing'].concat(totalParams)
-
-  const total =  await db.query(sql.projectCount(null, developer_id), totalParams)
-  const doing =  await db.query(sql.projectCount('status', developer_id), doingParams)
+  const total =  await db.query(sql.projectCount(), [req.headers.groups])
+  const doing =  await db.query(sql.projectCount('status'), ['doing', req.headers.groups])
 
   res.json(res.genData('success', {
     total: parseInt(total.rows[0].count),
@@ -244,18 +221,8 @@ router.put('/plans', (req, res, next)=>{
         res.json(res.genData('success', {
           id: plan.id
         }))
-      }
+      }      
     })
-  })
-})
-
-router.put('/plan', (req, res, next)=>{
-  const plan = {...req.body}
-
-  db.query(sql.updatePlanProgress, [plan.progress, plan.id]).then(data=>{
-    res.json(res.genData('success', {
-      id: plan.id
-    }))     
   })
 })
 
@@ -284,7 +251,7 @@ router.get('/timenodes', async (req, res, next)=>{
 })
 
 router.get('/month-task-time', async (req, res, next)=>{
-  const data = await db.query(sql.getTotalTaskTimeByMounth, [req.query.ym])
+  const data = await db.query(sql.getTotalTaskTimeByMounth)
 
   res.json(res.genData('success', {
     totalTime: parseFloat(parseInt(data.rows[0].total_time).toFixed(1))
@@ -292,7 +259,7 @@ router.get('/month-task-time', async (req, res, next)=>{
 })
 
 router.get('/month-progress', async (req, res, next)=>{
-  const data = await db.query(sql.getTotalProgress, [req.query.ym] )
+  const data = await db.query(sql.getTotalProgress)
 
   res.json(res.genData('success', {
     totalProgress: parseFloat(parseInt(data.rows[0].total_progress).toFixed(1))

@@ -30,6 +30,11 @@ app.use(bodyParser.json())
 app.use(genData)
 app.use(auth)
 
+// global route
+const globalRouter = require('./routes/global');
+app.use('/global', globalRouter);
+
+
 // user route
 const usersRouter = require('./routes/users');
 app.use('/user', usersRouter);
@@ -41,5 +46,9 @@ app.use('/dic', dicRouter);
 // project route
 const projectsRouter = require('./routes/projects');
 app.use('/project', projectsRouter);
+
+// kpi route
+const kpiRouter = require('./routes/kpi');
+app.use('/kpi', kpiRouter);
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))

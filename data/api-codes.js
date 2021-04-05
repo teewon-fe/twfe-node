@@ -27,6 +27,11 @@ module.exports = {
     message: '数据异常',
     resType: 'error'
   },
+  paramsError:{
+    code: '3004',
+    message: '参数错误',
+    resType: 'error'
+  },
   success: {
     message: '操作成功'
   }

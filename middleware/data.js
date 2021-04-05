@@ -9,6 +9,12 @@ module.exports = (req, res, next) => {
       data: data || null
     }
   }
+
+  if (req.headers['global-dev-group']) {
+    req.headers['global-dev-group'] = `%${req.headers['global-dev-group'].split(',').sort().join(',')}%`
+  } else {
+    req.headers['global-dev-group'] = '%%'
+  }
   
   next()
 }

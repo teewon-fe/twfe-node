@@ -22,4 +22,12 @@ router.get('/list', (req, res, next)=>{
   }))
 })
 
+router.get('/specialDates', async (req, res, next)=>{
+  const data = await db.query(sql.specialDates)
+
+  res.json(res.genData('success', {
+    list: data.rows
+  }))
+})
+
 module.exports = router

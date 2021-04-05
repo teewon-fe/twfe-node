@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db')
 const sql = require('../db/sql')
+const encrypt = require('../utils/encrypt')
 
 router.get('/', async (req, res, next)=>{
   const {username, password} = req.query
@@ -13,7 +14,10 @@ router.get('/', async (req, res, next)=>{
     if (data.rows[0].user_password === password) {
       res.json(res.genData('loginSuccess', {
         userId: data.rows[0].id,
-        sessionid:parseInt(Math.random()*100000000)
+        role: data.rows[0].role,
+        userGroup: data.rows[0].user_group,
+        mobile: data.rows[0].mobile,
+        token:encrypt.toEncryption(`${parseInt(Math.random()*10000)}_${data.rows[0].id}_${parseInt(Math.random()*10000)}`)
       }))
     } else {
       res.json(res.genData('passwordError'))
@@ -32,8 +36,21 @@ router.get('/id', (req, res, next)=>{
 })
 
 router.get('/list', async (req, res, next)=>{
-  const {groupId} = req.query
-  const data = await db.query(sql.userList, [groupId])
+  const {groupIds} = req.query
+
+  if (!groupIds || /^[_a-z\d]+$/.test(groupIds.replace(/,/g, ''))) {
+    const data = await db.query(sql.userList(groupIds.split(',').map(item=>`'${item}'`)))
+
+    res.json(res.genData('success', {
+      list: data.rows
+    }))
+  } else {
+    res.send(res.genData('paramsError'))
+  }
+})
+
+router.get('/usernames', async (req, res, next)=>{
+  const data = await db.query(sql.usernames)
 
   res.json(res.genData('success', {
     list: data.rows
@@ -48,13 +65,22 @@ router.get('/groups', async (req, res, next)=>{
   }))
 })
 
+router.get('/count', async (req, res, next)=>{
+  const {groupId} = req.query
+  const data = await db.query(sql.getUserCountByGroup, [groupId])
+
+  res.json(res.genData('success', {
+    count: parseInt(data.rows[0].count)
+  }))
+})
+
 router.post('/', (req, res, next)=>{
   const {username, password, groupId, mobile} = req.body
 
   db.query(sql.inserUser, [username, password, groupId, mobile]).then(data=>{
     res.json(res.genData('registerSuccess', {
       userId: data.rows[0].id,
-      sessionid:parseInt(Math.random()*100000000)
+      token:encrypt.toEncryption(`${parseInt(Math.random()*10000)}_${data.rows[0].id}_${parseInt(Math.random()*10000)}`)
     }))
   }).catch(err => {
     console.log(err)

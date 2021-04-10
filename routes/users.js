@@ -36,10 +36,12 @@ router.get('/id', (req, res, next)=>{
 })
 
 router.get('/list', async (req, res, next)=>{
-  const {groupIds} = req.query
+  let {groupIds} = req.query
 
   if (!groupIds || /^[_a-z\d]+$/.test(groupIds.replace(/,/g, ''))) {
-    const data = await db.query(sql.userList(groupIds.split(',').map(item=>`'${item}'`)))
+    groupIds = groupIds ? groupIds.split(',').map(item=>`'${item}'`) : ''
+
+    const data = await db.query(sql.userList(groupIds))
 
     res.json(res.genData('success', {
       list: data.rows

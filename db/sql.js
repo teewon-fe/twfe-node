@@ -128,7 +128,7 @@ module.exports = {
 
   updatePlanProgress: `UPDATE pj_plan SET progress = $1 WHERE id = $2`,
 
-  projectTypes: 'SELECT id, type_name AS name FROM dic_type',
+  projectTypes: 'SELECT id, type_name AS name FROM dic_type ORDER BY id',
 
   specialDates: 'select * from dic_special_date',
 
@@ -163,5 +163,17 @@ module.exports = {
   getTaskTimsByMonth: `select sum(task_time) from pj_plan WHERE developer_id = $1 AND to_char(start_time, 'yyyy-MM') = $2  AND to_char(end_time, 'yyyy-MM') = $2`,
 
   // 某开发查询大于某月的【已完成】工作量
-  doneTaskTimeByMounth: `select sum(task_time * progress) from pj_plan WHERE developer_id = $1 AND start_time >= to_date($2, 'yyyy-MM')`
+  doneTaskTimeByMounth: `select sum(task_time * progress) from pj_plan WHERE developer_id = $1 AND start_time >= to_date($2, 'yyyy-MM')`,
+
+  // 获取某用户的计划
+  getPlansByUserId: `SELECT pj_plan.id as id, project_id, project_name, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, progress, pj_plan.remark as remark from pj_plan LEFT JOIN project ON pj_plan.project_id = project.id WHERE developer_id = $1 AND project.status = 'doing' ORDER BY start_time ASC`,
+
+  // 按人统计工时
+  countTasktimesByDeveloper (months) {
+    if (months) {
+      return `SELECT developer_id, developer_name,  SUM(task_time) FROM pj_plan WHERE to_char(start_time, 'yyyy-MM') in $1 AND task_type <> 'group' GROUP BY developer_id, developer_name`
+    } else {
+      return `SELECT developer_id, developer_name,  SUM(task_time) FROM pj_plan WHERE to_char(start_time, 'yyyy') in $1 AND task_type <> 'group' GROUP BY developer_id, developer_name`
+    }
+  }
 }

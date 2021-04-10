@@ -64,6 +64,16 @@ router.get('/', async (req, res, next)=>{
   }))
 })
 
+router.get('/plans', async (req, res, next)=>{
+  const {developer_id} = req.query
+
+  const data = await db.query(sql.getPlansByUserId, [parseInt(developer_id)])
+
+  res.json(res.genData('success', {
+    list: data.rows
+  }))
+})
+
 router.post('/', (req, res, next)=>{
   const project = req.body.project
 

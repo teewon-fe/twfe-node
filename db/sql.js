@@ -1,5 +1,15 @@
 const format = require('pg-format')
 
+const $in = function (startIndex, num) {
+  let result = []
+
+  for (let i=startIndex; i<startIndex+num; i++) {
+    result.push(`$${i}`)
+  }
+
+  return result.join(',')
+}
+
 module.exports = {
   existuser: 'SELECT 1 FROM tw_user WHERE user_name = $1',
 
@@ -143,19 +153,19 @@ module.exports = {
   getTotalProgress: `select sum(task_time * progress) as total_progress from pj_plan WHERE to_char(start_time, 'yyyy-MM') = $1`,
 
   insertIssue(values) {
-    return format('INSERT INTO issues(descript, type, project_id, project_name, create_developer_id, create_developer, handle_developer, resolve_time, status, remark) VALUES %L RETURNING id', values)
+    return format('INSERT INTO issues(descript, type, project_id, project_name, create_developer_id, create_developer, group_id, handle_developer, resolve_time, status, remark) VALUES %L RETURNING id', values)
   },
 
   deleteIssue: 'delete from issues where id = $1',
 
-  updateIssue: 'UPDATE issues SET descript = $2, type = $3, project_id = $4, project_name = $5, create_developer_id = $6, create_developer = $7, handle_developer = $8, resolve_time = $9, status = $10, remark = $11 WHERE id = $1',
+  updateIssue: 'UPDATE issues SET descript = $2, type = $3, project_id = $4, project_name = $5, create_developer_id = $6, create_developer = $7, group_id = $8, handle_developer = $9, resolve_time = $10, status = $11, remark = $12 WHERE id = $1',
 
   // 获取要处理的所有问题
   genIssueList (type) {
     if (type) {
-      return `select * from issues where type = $1 AND status = 'doing'`
+      return `select * from issues where type = $1 AND group_id like $2 AND status like $3`
     } else {
-      return `select * from issues where status = 'doing'`
+      return `select * from issues where group_id like $1 AND status like $2`
     }
   },
 
@@ -169,11 +179,19 @@ module.exports = {
   getPlansByUserId: `SELECT pj_plan.id as id, project_id, project_name, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, progress, pj_plan.remark as remark from pj_plan LEFT JOIN project ON pj_plan.project_id = project.id WHERE developer_id = $1 AND project.status = 'doing' ORDER BY start_time ASC`,
 
   // 按人统计工时
-  countTasktimesByDeveloper (months) {
-    if (months) {
-      return `SELECT developer_id, developer_name,  SUM(task_time) FROM pj_plan WHERE to_char(start_time, 'yyyy-MM') in $1 AND task_type <> 'group' GROUP BY developer_id, developer_name`
-    } else {
-      return `SELECT developer_id, developer_name,  SUM(task_time) FROM pj_plan WHERE to_char(start_time, 'yyyy') in $1 AND task_type <> 'group' GROUP BY developer_id, developer_name`
+  countTasktimesByDeveloper (query) {
+    let sql = `SELECT developer_id, developer_name, SUM(task_time) AS task_times FROM pj_plan JOIN tw_user ON pj_plan.developer_id = tw_user.id WHERE task_type <> 'group' AND to_char(start_time, 'yyyy') like $1`
+    let startIndex = 2
+
+    if (query.groups.length > 0) {
+      sql += ` AND user_group IN (${$in(startIndex, query.groups.length)})`
+      startIndex += query.groups.length
     }
+
+    if (query.months.length > 0) {
+      sql += ` AND to_char(start_time, 'MM') IN (${$in(startIndex, query.months.length)})`
+    }
+
+    return sql + ` GROUP BY developer_id, developer_name`
   }
 }

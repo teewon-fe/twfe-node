@@ -64,16 +64,6 @@ router.get('/', async (req, res, next)=>{
   }))
 })
 
-router.get('/plans', async (req, res, next)=>{
-  const {developer_id} = req.query
-
-  const data = await db.query(sql.getPlansByUserId, [parseInt(developer_id)])
-
-  res.json(res.genData('success', {
-    list: data.rows
-  }))
-})
-
 router.post('/', (req, res, next)=>{
   const project = req.body.project
 
@@ -204,8 +194,7 @@ router.get('/list', async (req, res, next)=>{
   let data = null
 
   if (req.query.status) {
-    values.unshift(req.query.status)
-    data = await db.query(sql.genProjects('status'), values)
+    data = await db.query(sql.genProjects('status'), [req.query.status, req.headers['global-dev-group']])
   } else if (req.query.id) {
     data = await db.query(sql.genProjects('id'), [req.query.id])
   } else {
@@ -239,8 +228,18 @@ router.get('/count', async (req, res, next)=>{
   }))
 })
 
+router.get('/plansByDeveloper', async (req, res, next)=>{
+  const {developer_id} = req.query
+
+  const data = await db.query(sql.getPlansByUserId, [parseInt(developer_id)])
+
+  res.json(res.genData('success', {
+    list: data.rows
+  }))
+})
+
 router.get('/plans', (req, res, next)=>{
-  db.query(sql.plans, [parseInt(req.query.projectId)]).then(data=>{
+  db.query(sql.plans, [parseInt(req.query.projectId), req.headers['global-dev-group']]).then(data=>{
     res.json(res.genData('success', {
       list: data.rows
     }))
@@ -312,9 +311,27 @@ router.get('/month-progress', async (req, res, next)=>{
 router.put('/close', (req, res, next)=>{
   db.query(sql.toggleProject, [req.body.status, req.body.id]).then(data=>{
     res.json(res.genData('success', {
-      id: req.body.id
+      list: data.rows
     }))
   })
+})
+
+router.get('/task-times', async (req, res, next) => {
+  const query = req.query
+
+  if (!query.groups) {
+    query.groups = []
+  }
+
+  if (!query.months) {
+    query.months = []
+  }
+
+  const data = await db.query(sql.countTasktimesByDeveloper(req.query), [`%${query.year}%`, ...query.groups,  ...query.months])
+
+  res.json(res.genData('success', {
+    list: data.rows
+  }))
 })
 
 // router.get('/summary', async (req, res, next)=>{

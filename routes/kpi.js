@@ -141,7 +141,7 @@ router.get('/', async (req, res, next) => {
 
 // 增加问题
 router.post('/issue', async (req, res, next)=>{
-    let issue = [[req.body.descript, req.body.type, req.body.project_id || null, req.body.project_name || null, req.body.create_developer_id, req.body.create_developer, req.body.handle_developer || null, req.body.resolve_time || null, req.body.status || null, req.body.remark || null]]
+    let issue = [[req.body.descript, req.body.type, req.body.project_id || null, req.body.project_name || null, req.body.create_developer_id, req.body.create_developer, req.body.group_id, req.body.handle_developer || null, req.body.resolve_time || null, req.body.status || null, req.body.remark || null]]
     const data = await db.query(sql.insertIssue(issue))
 
     res.json(res.genData('success', {
@@ -158,7 +158,7 @@ router.delete('/issue/:id', async (req, res, next)=>{
 
 // 修改问题
 router.put('/issue', async (req, res, next)=>{
-    let issue = [req.body.id, req.body.descript, req.body.type, req.body.project_id || null, req.body.project_name || null, req.body.create_developer_id, req.body.create_developer, req.body.handle_developer || null, req.body.resolve_time || null, req.body.status || null, req.body.remark || null]
+    let issue = [req.body.id, req.body.descript, req.body.type, req.body.project_id || null, req.body.project_name || null, req.body.create_developer_id, req.body.create_developer, req.body.group_id, req.body.handle_developer || null, req.body.resolve_time || null, req.body.status || null, req.body.remark || null]
 
     db.query(sql.updateIssue, issue).then(data=>{
         res.json(res.genData('success', {
@@ -173,9 +173,9 @@ router.get('/issues', async (req, res, next)=>{
     const ymChar = req.query.ym || dateFormat(new Date(), 'yyyy-mm')
 
     if (req.query.type) {
-        data = await db.query(sql.genIssueList(req.query.type), [req.query.type])
+        data = await db.query(sql.genIssueList(req.query.type), [req.query.type, req.headers['global-dev-group'], `%${req.query.status || ''}%`])
     } else {
-        data = await db.query(sql.genIssueList())
+        data = await db.query(sql.genIssueList(), [req.headers['global-dev-group'], `%${req.query.status || ''}%`])
     }
 
     data.rows.forEach(item=>{

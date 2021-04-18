@@ -6,7 +6,10 @@ module.exports = {
       item.project.task_time = 0
       item.project.invested_time = 0
       item.project.progress = 0
+      item.project.delay = 0
+      item.project.progress_day = 0
       item.project.expectant_progress = 0
+      item.project.expectant_progress_day = 0
 
       let taskNums = 0
       item.project.next_time_node = {
@@ -53,23 +56,26 @@ module.exports = {
       item.plans.forEach((plan, idx) => {
         if (plan.task_type === 'normal') {
           taskNums++
-          item.project.progress += plan.progress || 0
+          item.project.progress_day += parseFloat((plan.progress || 0) * plan.task_time)
           item.project.task_time += parseFloat(plan.task_time)
 
           if (!developers[plan.developer_name]) {
             developers[plan.developer_name] = {
               task_nums: 0,
               progress: 0,
-              tast_time: 0,
+              progress_day: 0,
+              task_time: 0,
+              delay: 0,
               expectant_progress: 0,
+              expectant_progress_day: 0,
               developer_id: plan.developer_id,
               developer_name: plan.developer_name
             }
           }
 
           if (new Date() >= new Date(plan.end_time)) {
-            item.project.expectant_progress++
-            developers[plan.developer_name].expectant_progress++
+            item.project.expectant_progress_day += parseFloat(plan.task_time)
+            developers[plan.developer_name].expectant_progress_day += parseFloat(plan.task_time)
           }
 
           if (new Date() >= new Date(plan.end_time)) {
@@ -77,8 +83,8 @@ module.exports = {
           }
 
           developers[plan.developer_name].task_nums++
-          developers[plan.developer_name].tast_time += parseFloat(plan.task_time)
-          developers[plan.developer_name].progress += parseFloat(plan.progress)
+          developers[plan.developer_name].task_time += parseFloat(plan.task_time)
+          developers[plan.developer_name].progress_day += parseFloat(plan.progress * plan.task_time)
 
           if (new Date() >= new Date(plan.end_time) && plan.progress<1) {
             plan.status = 'risky'
@@ -102,13 +108,16 @@ module.exports = {
       item.plans = planList
 
       item.developers = [...Object.values(developers)].map(dp => {
-        dp.progress = parseFloat((dp.progress / dp.task_nums * 100).toFixed(2))
-        dp.expectant_progress = parseFloat((dp.expectant_progress / dp.task_nums * 100).toFixed(2))
+        dp.progress = parseFloat((dp.progress_day / dp.task_time * 100).toFixed(2))        
+        dp.expectant_progress = parseFloat((dp.expectant_progress_day / dp.task_time * 100).toFixed(2))
+        dp.task_time = parseFloat(dp.task_time.toFixed(2))
+        dp.delay = parseFloat((dp.expectant_progress_day - dp.progress_day).toFixed(2))
         return dp
       })
 
-      item.project.expectant_progress = parseFloat((item.project.expectant_progress / taskNums * 100).toFixed(2)) || 0
-      item.project.progress = parseFloat((item.project.progress / taskNums * 100).toFixed(2)) || 0
+      item.project.expectant_progress = parseFloat((item.project.expectant_progress_day / item.project.task_time * 100).toFixed(2)) || 0
+      item.project.progress = parseFloat((item.project.progress_day / item.project.task_time * 100).toFixed(2)) || 0
+      item.project.delay =  parseFloat((item.project.expectant_progress_day - item.project.progress_day).toFixed(2))
 
       let status = 'doing'
 

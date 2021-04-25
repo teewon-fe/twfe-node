@@ -116,6 +116,10 @@ module.exports = {
 
   updateTimeNode: 'UPDATE pj_time_node SET time_node_name = $2, start_time = $3, remark = $4 WHERE id = $1',
 
+  updatePrdReviewNum: 'UPDATE pj_time_node SET prd_review_num = $2 WHERE id = $1',
+
+  updateTestInfo: 'UPDATE pj_time_node SET done_time = $2, delay_developer_id = $3, delay_cause = $4, ng_status = $5, ng_developer_id = $6, secondary_ng_developer_id = $7, secondary_delay_developer_ids = $8 WHERE id = $1',
+
   timeNodes: 'SELECT id, time_node_name, project_id, start_time, done_time, remark from pj_time_node WHERE project_id = $1 ORDER BY start_time',
 
   insertProjectPlan(values) {
@@ -193,5 +197,10 @@ module.exports = {
     }
 
     return sql + ` GROUP BY developer_id, developer_name`
-  }
+  },
+
+  // 插入项目相关kpi
+  insertProjectKpi : `INSERT INTO project(project_id, developer_id, developer_name, red_bug_num, org_bug_num, normal_bug_num, delay_test_day, test_ng, delay_bug_num, code_guid, prd_issue_num, design_doc, training_sharing, patent , remark) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`
 }
+
+

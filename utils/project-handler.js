@@ -1,7 +1,7 @@
 const dateFormat = require('dateformat')
 
 module.exports = {
-  projectHandler (projectList) {
+  async projectHandler (projectList) {
     return projectList.map(item => {
       item.project.task_time = 0
       item.project.invested_time = 0
@@ -18,7 +18,7 @@ module.exports = {
       }
 
       for (const tn of item.timeNodes) {
-        tn.start_time = dateFormat(tn.start_time, 'yyyy-mm-dd')
+        tn.start_time = dateFormat(tn.start_time, 'yyyy-mm-dd') + ' 23:59:59'
         const start = new Date(tn.start_time)
 
         if (new Date() <= start) {
@@ -69,7 +69,8 @@ module.exports = {
               expectant_progress: 0,
               expectant_progress_day: 0,
               developer_id: plan.developer_id,
-              developer_name: plan.developer_name
+              developer_name: plan.developer_name,
+              dev_group: plan.dev_group
             }
           }
 

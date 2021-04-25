@@ -3,6 +3,7 @@ const router = express.Router()
 const db = require('../db')
 const sql = require('../db/sql')
 const projectHandler = require('../utils/project-handler').projectHandler
+const dateformat = require('dateformat')
 
 router.get('/', async (req, res, next)=>{
   let values = []
@@ -84,8 +85,8 @@ router.post('/', (req, res, next)=>{
     project.project_test_case_svn,
     project.status || 'doing',
     project.remark || null,
-    project.project_fe_leader_id,
-    project.project_fe_leader_name
+    project.project_fe_leader_id || null,
+    project.project_fe_leader_name || null
   ]).then(data=>{
     let timeNodes = req.body.timeNodes
     timeNodes = timeNodes.map(item=>[item.time_node_name, data.rows[0].id, item.start_time, item.remark])
@@ -332,6 +333,27 @@ router.get('/task-times', async (req, res, next) => {
   res.json(res.genData('success', {
     list: data.rows
   }))
+})
+
+router.put('/updatePrdReviewNum', (req, res, next)=>{
+  db.query(sql.updatePrdReviewNum, [req.body.id, JSON.stringify(req.body.prd_review_nums)]).then(data=>{
+    res.json(res.genData('success'))
+  })
+})
+
+router.put('/updateTestInfo', (req, res, next)=>{
+  db.query(sql.updateTestInfo, [
+    req.body.id,
+    req.body.done_time || dateformat(new Date(), 'yyyy-mm-dd'),
+    req.body.delay_developer_id ? req.body.delay_developer_id.join(',') : null,
+    req.body.delay_cause || null,
+    req.body.ng_status || null,
+    req.body.ng_developer_id ? req.body.ng_developer_id.join(',') : null,
+    req.body.secondary_ng_developer_id ? req.body.secondary_ng_developer_id.join(',') : null,
+    req.body.secondary_delay_developer_ids ? req.body.secondary_delay_developer_ids.join(',') : null
+  ]).then(data=>{
+    res.json(res.genData('success'))
+  })
 })
 
 // router.get('/summary', async (req, res, next)=>{

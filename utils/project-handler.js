@@ -17,8 +17,22 @@ module.exports = {
         time_node_name: '已结束'
       }
 
-      for (const tn of item.timeNodes) {
+      for (let i = 0; i< item.timeNodes.length; i++) {
+        const tn = item.timeNodes[i]
+        const nextTn = item.timeNodes[i + 1]
+
+        // try {
+        //   tn.delay_developer_id = tn.delay_developer_id ? JSON.parse(tn.delay_developer_id).split(',') : []
+        //   tn.secondary_delay_developer_id = tn.secondary_delay_developer_id ? JSON.parse(tn.secondary_delay_developer_id).split(',') : []
+        //   tn.ng_developer_id = tn.ng_developer_id ? JSON.parse(tn.ng_developer_id).split(',') : []
+        //   tn.secondary_ng_developer_id = tn.secondary_ng_developer_id ? JSON.parse(tn.secondary_ng_developer_id).split(',') : []
+        //   tn.delay_bug_num = tn.delay_bug_num ? JSON.parse(tn.delay_bug_num).split(',') : []  
+        // } catch {
+        //   debugger
+        // }
+        
         tn.start_time = dateFormat(tn.start_time, 'yyyy-mm-dd') + ' 23:59:59'
+        tn.actual_start_time = tn.actual_start_time && dateFormat(tn.actual_start_time, 'yyyy-mm-dd')
         const start = new Date(tn.start_time)
 
         if (new Date() <= start) {
@@ -27,18 +41,25 @@ module.exports = {
               start: tn.start_time,
               time_node_name: tn.time_node_name
             }
-          }          
+          }
         } else {
           tn.status = 'active'
 
-          if (tn.time_node_name.includes('转测') && !tn.done_time) {
+          if (!tn.actual_start_time) {
             tn.status = 'risk'
           }
         }
 
-        if (tn.done_time) {
-          tn.status = 'done'
-          tn.done_time = dateFormat(tn.done_time, 'yyyy-mm-dd')
+        if (nextTn) {
+          if (nextTn.actual_start_time) {
+            tn.status = 'done'
+            tn.actual_start_time = dateFormat(tn.actual_start_time, 'yyyy-mm-dd')
+          }
+        } else {
+          if (tn.actual_start_time) {
+            tn.status = 'done'
+            tn.actual_start_time = dateFormat(tn.actual_start_time, 'yyyy-mm-dd')
+          }
         }
 
         tn.text = `${tn.time_node_name}(${dateFormat(start, 'yyyy-mm-dd')})`

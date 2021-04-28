@@ -116,11 +116,15 @@ module.exports = {
 
   updateTimeNode: 'UPDATE pj_time_node SET time_node_name = $2, start_time = $3, remark = $4 WHERE id = $1',
 
-  updatePrdReviewNum: 'UPDATE pj_time_node SET prd_review_num = $2 WHERE id = $1',
+  updatePrdReviewNum: 'UPDATE pj_time_node SET prd_review_num = $2, actual_start_time = $3 WHERE id = $1',
 
-  updateTestInfo: 'UPDATE pj_time_node SET done_time = $2, delay_developer_id = $3, delay_cause = $4, ng_status = $5, ng_developer_id = $6, secondary_ng_developer_id = $7, secondary_delay_developer_ids = $8 WHERE id = $1',
+  updateTestInfo: 'UPDATE pj_time_node SET actual_start_time = $2, delay_developer_id = $3, secondary_delay_developer_id = $4, delay_cause = $5, ng_status = $6, ng_developer_id = $7, secondary_ng_developer_id = $8, delay_bug_num = $9 WHERE id = $1',
 
-  timeNodes: 'SELECT id, time_node_name, project_id, start_time, done_time, remark from pj_time_node WHERE project_id = $1 ORDER BY start_time',
+  updatePublishInfo: 'UPDATE pj_time_node SET actual_start_time = $2, delay_developer_id = $3, secondary_delay_developer_id = $4, delay_cause = $5, ng_status = $6, ng_developer_id = $7, secondary_ng_developer_id = $8, delay_bug_num = $9 WHERE id = $1',
+
+  timeNodes: 'SELECT id, time_node_name, project_id, start_time, actual_start_time, remark, delay_developer_id, delay_cause, ng_status, ng_developer_id, ng_cause, delay_bug_num, prd_review_num, secondary_ng_developer_id, secondary_delay_developer_id from pj_time_node WHERE project_id = $1 ORDER BY start_time',
+  
+  timeNodesById: 'SELECT * from pj_time_node WHERE id = $1',
 
   insertProjectPlan(values) {
     return format('INSERT INTO pj_plan(project_id, task_name, task_type, degreen, priority, task_time, start_time, end_time, developer_id, developer_name, no) VALUES %L RETURNING id', values)

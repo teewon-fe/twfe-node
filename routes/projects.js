@@ -179,15 +179,15 @@ router.put('/', async (req, res, next)=>{
 router.delete('/:id/:pwd', async (req, res, next)=>{
   const data = await db.query(sql.fetchPasswordById, [req.headers['user-id']])
 
-    if (data.rows[0].user_password === req.params.pwd) {
-      await db.query(sql.deletePlan('project'), [parseInt(req.params.id)])
-      await db.query(sql.deleteTimeNode('project'), [parseInt(req.params.id)])
-      await db.query(sql.deleteProject, [parseInt(req.params.id)])
+  if (data.rows[0].user_password === req.params.pwd) {
+    await db.query(sql.deletePlan('project'), [parseInt(req.params.id)])
+    await db.query(sql.deleteTimeNode('project'), [parseInt(req.params.id)])
+    await db.query(sql.deleteProject, [parseInt(req.params.id)])
 
-      res.json(res.genData('success'))
-    } else {
-      res.json(res.genData('passwordError'))
-    }
+    res.json(res.genData('success'))
+  } else {
+    res.json(res.genData('passwordError'))
+  }
 })
 
 router.get('/list', async (req, res, next)=>{
@@ -335,23 +335,69 @@ router.get('/task-times', async (req, res, next) => {
   }))
 })
 
-router.put('/updatePrdReviewNum', (req, res, next)=>{
-  db.query(sql.updatePrdReviewNum, [req.body.id, JSON.stringify(req.body.prd_review_nums)]).then(data=>{
+router.put('/updatePrdReviewNum', async (req, res, next)=>{
+  const timeNode = await db.query(sql.timeNodesById, [req.body.id])
+  let prd_review_num = []
+
+  if (timeNode.rows[0]) {
+    // 不能修改非本开发组的开发人员数据
+    prd_review_num = timeNode.rows[0].prd_review_num.filter(item => item.dev_group !== req.headers['user-group'])
+  }
+
+  let requestPrdReviewNums = []
+
+  if (req.body.prd_review_num) {
+    // 过滤掉非本开发组，但在请求中有提交的数据
+    requestPrdReviewNums = req.body.prd_review_num.filter(item => item.dev_group === req.headers['user-group'])
+  }
+  
+  prd_review_num = prd_review_num.concat(requestPrdReviewNums)
+
+  db.query(sql.updatePrdReviewNum, [
+    req.body.id, 
+    prd_review_num.length > 0 ? JSON.stringify(prd_review_num) : null,
+    req.body.actual_start_time || dateformat(new Date(), 'yyyy-mm-dd')
+  ]).then(data=>{
     res.json(res.genData('success'))
   })
 })
 
-router.put('/updateTestInfo', (req, res, next)=>{
+router.put('/updateTestInfo', async (req, res, next)=>{
+  const timeNode = await db.query(sql.timeNodesById, [req.body.id])
+
+  const params = {
+    delay_bug_num: [],
+    delay_developer_id: [],
+    secondary_delay_developer_id: [],
+    ng_developer_id: [],
+    secondary_ng_developer_id: []
+  }
+
+  if (timeNode.rows[0]) {
+    // 不能修改非本开发组的开发人员数据
+    for (const key of Object.keys(params)) {
+      params[key] = timeNode.rows[0][key] ? timeNode.rows[0][key].filter(item => item.dev_group !== req.headers['user-group']) : []
+    }
+  }
+
+  for (const key of Object.keys(params)) {
+    if (req.body[key]) {
+      // 过滤掉非本开发组，但在请求中有提交的数据
+      params[key] = params[key].concat(req.body[key].filter(item => item.dev_group === req.headers['user-group']))
+    }
+  }
+
   db.query(sql.updateTestInfo, [
     req.body.id,
-    req.body.done_time || dateformat(new Date(), 'yyyy-mm-dd'),
-    req.body.delay_developer_id ? req.body.delay_developer_id.join(',') : null,
+    req.body.actual_start_time || dateformat(new Date(), 'yyyy-mm-dd'),
+    params.delay_developer_id.length > 0 ? JSON.stringify(params.delay_developer_id) : null,
+    params.secondary_delay_developer_id.length > 0 ? JSON.stringify(params.secondary_delay_developer_id) : null,
     req.body.delay_cause || null,
     req.body.ng_status || null,
-    req.body.ng_developer_id ? req.body.ng_developer_id.join(',') : null,
-    req.body.secondary_ng_developer_id ? req.body.secondary_ng_developer_id.join(',') : null,
-    req.body.secondary_delay_developer_ids ? req.body.secondary_delay_developer_ids.join(',') : null
-  ]).then(data=>{
+    params.ng_developer_id.length > 0 ? JSON.stringify(params.ng_developer_id) : null,
+    params.secondary_ng_developer_id.length > 0 ? JSON.stringify(params.secondary_ng_developer_id) : null,
+    params.delay_bug_num.length > 0 ? JSON.stringify(params.delay_bug_num) : null,
+  ]).then(data => {
     res.json(res.genData('success'))
   })
 })

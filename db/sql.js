@@ -47,7 +47,7 @@ module.exports = {
   deleteProject: 'delete from project where id = $1',
 
   genProjects(type, isPageable, developer_id) {
-    const sql = 'SELECT id, project_name, project_version, project_type,  dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn,project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, project_fe_leader_id, project_fe_leader_name, remark from project '
+    const sql = 'SELECT id, project_name, project_version, project_type, dev_group, developer_ids, developer_names, project_leader_id, project_leader_name, project_svn, project_prd_url, project_design_svn, project_psd_svn, project_api_svn, project_test_case_svn, status, project_fe_leader_id, project_fe_leader_name, remark from project '
 
     if (type === 'id') {
       return sql + 'WHERE id = $1'
@@ -64,7 +64,7 @@ module.exports = {
         } else {
           return sql + `WHERE status = $1 AND dev_group like $2 ORDER BY id DESC`
         }
-      }      
+      }
     } else {
       if (developer_id) {
         return sql + `WHERE dev_group like $3 AND developer_ids ~ $4 ORDER BY id DESC LIMIT $1 OFFSET $2`

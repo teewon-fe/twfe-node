@@ -37,7 +37,7 @@ module.exports = {
   userById: `select * from tw_user where id = $1`,
 
   // 按组查询用户信息
-  userListByGroup: `SELECT id, user_name, user_group, mobile, role FROM tw_user where user_group = $1 AND status = 'normal'`,
+  userListByGroup: `SELECT id, user_name, user_group, mobile, role, user_level FROM tw_user where user_group = $1 AND status = 'normal'`,
 
   devGroups: 'SELECT id, group_name AS name FROM tw_group',
 
@@ -238,7 +238,7 @@ module.exports = {
 
   // 插入kpi
   insertKpi(values) {
-    return format('INSERT INTO kpi(kpi_type, kpi_num, kpi_time, developer_id, developer_name, dev_group, project_id, time_node_id, kpi_total_task_time) VALUES %L RETURNING id', values)
+    return format('INSERT INTO kpi(kpi_type, kpi_num, kpi_time, developer_id, developer_name, dev_group, project_id, time_node_id, kpi_total_task_time, kpi_num_original, kpi_fix_num) VALUES %L RETURNING id', values)
   },
 
   // 更新kpi
@@ -254,7 +254,9 @@ module.exports = {
   getApisByTimeNode: `SELECT * FROM kpi WHERE time_node_id = $1`,
 
   // 查询某项目某开发的非改单工作量
-  countTaskTime: `select SUM(task_time) as total_task_time from pj_plan where project_id = $1 AND developer_id = $2 AND "degreen" <> 9`
-}
+  countTaskTime: `select SUM(task_time) as total_task_time from pj_plan where project_id = $1 AND developer_id = $2 AND "degreen" <> 9`,
 
+  // 按月统计相关组开发的kpi
+  countKpiByMounth: `select kpi_type, developer_id, developer_name, dev_group, sum(kpi_num) as kpi_num, sum(kpi_total_task_time) as total_task_time, kpi_fix_num from kpi WHERE to_char(kpi_time, 'yyyy-MM') = $1 AND dev_group = $2 GROUP BY developer_id, developer_name, dev_group, kpi_type , kpi_fix_num ORDER BY kpi_type`
+}
 

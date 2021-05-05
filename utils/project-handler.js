@@ -34,6 +34,7 @@ module.exports = {
         tn.start_time = dateFormat(tn.start_time, 'yyyy-mm-dd') + ' 23:59:59'
         tn.actual_start_time = tn.actual_start_time && dateFormat(tn.actual_start_time, 'yyyy-mm-dd')
         const start = new Date(tn.start_time)
+        tn.kpi_status = 'wating'
 
         if (new Date() <= start) {
           if (item.project.next_time_node.time_node_name === '已结束') {
@@ -47,6 +48,20 @@ module.exports = {
 
           if (!tn.actual_start_time) {
             tn.status = 'risk'
+          }
+
+          // 组内kpi是否已登记
+          tn.kpi_status = 'doing'
+
+          if (tn.submitted_kpi_group) {
+            tn.submitted_kpi_group = tn.submitted_kpi_group.split(',')
+            const groups = item.project.dev_group.filter(item => tn.submitted_kpi_group.includes(item))
+
+            if (groups.length > 0) {
+              tn.kpi_status = 'done'
+            }
+          } else {
+            tn.submitted_kpi_group = []            
           }
         }
 
@@ -63,6 +78,8 @@ module.exports = {
         }
 
         tn.text = `${tn.time_node_name}(${dateFormat(start, 'yyyy-mm-dd')})`
+
+
       }
 
       if (item.project.next_time_node.time_node_name === '已结束') {

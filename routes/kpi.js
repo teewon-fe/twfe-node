@@ -3,6 +3,8 @@ const router = express.Router()
 const db = require('../db')
 const sql = require('../db/sql')
 const dateFormat = require('dateformat')
+const jira = require('../jira/jira')
+
 const worktime = {
     amStart: '09:00:00',
     amEnd: '12:00:00',
@@ -184,6 +186,112 @@ router.get('/issues', async (req, res, next)=>{
 
     res.json(res.genData('success', {
         list: data.rows
+    }))
+})
+
+// 查询jira
+router.get('/jira', async (req, res, next)=>{
+    const data = await jira.searchJira(req.query)
+
+    res.json(res.genData('success', {
+        list: data.users
+    }))
+})
+
+// 写入kpi
+router.post('/', async (req, res, next)=>{
+    const time_node = req.body.time_node
+
+    if (time_node) {
+        const submitted_kpi_group = time_node.submitted_kpi_group || []
+
+        if (!submitted_kpi_group.includes(req.headers['user-group'])) {
+            submitted_kpi_group.push(req.headers['user-group'])
+        }
+
+        await db.query(sql.updateActualStartTime, [
+            time_node.id, 
+            time_node.actual_start_time || dateFormat(new Date(), 'yyyy-mm-dd'),
+            time_node.delay_cause || null,
+            time_node.ng_status || null,
+            submitted_kpi_group.join(',')
+        ])
+
+        await db.query(sql.deleteUserKpiByTimeNode, [time_node.id, req.headers['user-group']])
+    }    
+
+    const kpis = req.body.kpis
+    const values = []
+
+    for (const [key, kpiList] of Object.entries(kpis)) {
+        for (const item of kpiList) {
+            // 如果为需求评审或普通bug数，需要计算其对应开发的总工时数
+            if (['prd_review_num', 'normal_bug_num'].includes(item.kpi_type)) {
+                const baseData = await db.query(sql.countTaskTime, [item.project_id, item.developer_id])
+                item.kpi_total_task_time = parseInt(baseData.rows[0].total_task_time)
+            }
+
+            if (time_node && time_node.actual_start_time) {
+                item.kpi_time = time_node.actual_start_time
+            }
+
+            values.push([
+                item.kpi_type,
+                item.kpi_num,
+                item.kpi_time,
+                item.developer_id,
+                item.developer_name,
+                item.dev_group,
+                item.project_id || null,
+                item.time_node_id || null,
+                item.kpi_total_task_time || 0
+            ])
+        }        
+    }
+
+    if (values.length > 0) {
+        db.query(sql.insertKpi(values)).then(data=>{
+            res.json(res.genData('success'))
+        })
+    } else {
+        res.json(res.genData('success'))
+    }    
+})
+
+// 更新kpi
+router.put('/', async (req, res, next)=>{
+    if (req.body.time_node_id) {
+        await db.query(sql.updateActualStartTime, [req.body.time_node_id, req.body.actual_start_time || dateformat(new Date(), 'yyyy-mm-dd')])
+    }
+
+    const kpis = req.body.kpis
+
+    for (let i = 0; i < kpis.length; i++) {
+        const kpi = kpis[i];
+        
+        db.query(sql.updateProject, kpi).then(data=>{
+            res.json(res.genData('success'))
+        })
+    }
+
+    res.json(res.genData('success'))
+})
+
+// 按时间节点id查询kpi
+router.get('/getApisByTimeNode', async (req, res, next)=>{
+    const data = await db.query(sql.getApisByTimeNode, [req.query.time_node_id])
+    const result = {}
+
+    for (const row of data.rows) {
+        if (!result[row.kpi_type]) {
+            result[row.kpi_type] = []
+        }
+
+        result[row.kpi_type].push(row)
+    }
+
+    res.json(res.genData('success', {
+        kpis: result
     }))
 })
 
